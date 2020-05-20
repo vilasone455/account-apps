@@ -1,0 +1,405 @@
+ <!DOCTYPE html>
+<html>
+
+ <head>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round|Open+Sans">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="./app/css/bootstrap.css">
+  <link rel="stylesheet" type="text/css" href="./app/css/table.css">
+  <script src="./app/js/jquery-3.4.1.js"></script>
+  <script src="./app/js/bootstrap.js"></script>
+  <script src="./app/js/vue.js"></script>
+  <script src="./app/js/axios.min.js"></script>
+
+  <style type="text/css">
+    .loader {
+  border: 8px solid #f3f3f3; /* Light grey */
+  border-top: 8px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 2s linear infinite;
+  position: absolute;
+  z-index: 999;
+  margin-left: 20%;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+  </style>
+
+</head> 
+
+<body>
+
+<div id="app">
+	
+<div class="container">
+
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-8"><h2>Account <b>Details</b></h2></div>
+                    <div class="col-sm-4">
+                        <button type="button" v-on:click="prepare_newpro" class="btn btn-info add-new"><i class="fa fa-plus"></i> Add New</button>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-bordered">
+               <div class="loader" v-if="isFetching == true"></div> 
+                <thead>
+                    <tr >
+                        <th>No</th>
+                        <th>Account Id</th>
+                        <th>Account Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(pro, index) in ProList">
+                        <td>
+                        	<div v-if="pro.is_edit == false">{{index+1+start_index}}</div>
+                        	<div v-else><input type='text' class="form-control"  v-model="acc_no"></div>
+                        </td>
+                        <td>
+                        	<div v-if="pro.is_edit == false">{{pro.acc_id}}</div>
+                        	<div v-else><input type='text' v-bind:class="[acc_id_class, acc_id_error]" v-model="acc_id" v-placeholder="pro.acc_id"></div>
+                        </td>
+                        <td>
+                        	<div v-if="pro.is_edit == false">{{pro.acc_name}}</div>
+                        	<div v-else><input type='text' v-bind:class="[acc_name_class, acc_name_error]" v-model="acc_name"></div>
+                        </td>
+                        <td>
+              				<a class="edit" v-if="pro.is_edit == true" title="Add" data-toggle="tooltip" v-on:click="save(index)"><i class="material-icons">&#xE03B;</i></a>
+                            <a class="edit" v-if="pro.is_edit == false" title="Edit" data-toggle="tooltip" v-on:click="prepare_edit(index)"><i class="material-icons">&#xE254;</i></a>
+                            <a class="delete" title="Delete" data-toggle="tooltip" v-on:click="remove(index)"><i class="material-icons">&#xE872;</i></a>
+                        </td>
+                    </tr>     
+                </tbody>
+            </table>
+                <nav aria-label="Page navigation example">
+ 					        <ul class="pagination justify-content-center">
+    					       <li class="page-item" @click="previou_page()">
+     						       <a class="page-link"  tabindex="-1">Previous</a>
+    					       </li>
+    					       <li v-for="p in pagination_data" v-bind:class="[p.class_normal, p.class_error]" @click="render_page(p.index_data)">
+                      <a class="page-link" >{{p.index_data}}</a></li>
+    					       <li class="page-item" @click="next_page()">
+      						    <a class="page-link"  >Next</a>
+    					       </li>
+  					      </ul>
+				        </nav>
+        </div>
+    </div>  
+
+</div>
+
+
+
+
+<script>
+
+var app = new Vue({
+
+  el: '#app',
+  data () {
+    return {
+
+      setting : {
+        auto_id : true
+      },
+
+    	item_per_page : 5,
+    	page_total : 1,
+    	current_page : 1,
+      start_index : 0,
+      isFetching : false,
+      last_id : 0,
+
+      pagination_data : [],
+
+    	save_state : 0,
+      update_index : 0,
+
+    	acc_id_class : "form-control",
+		  acc_id_error : "",
+
+    	acc_name_class : "form-control",
+    	acc_name_error : "",
+    	acc_no : 0,
+    	acc_name : "",
+    	acc_id : 1000,
+
+      ProList : []
+    }
+  },
+  mounted () {
+
+  	this.render_page(1);
+
+    axios.get('./app/action/rolecheck.php').then(res => {
+      if(res.data["role"] != "admin"){
+        window.location.href = "login.html";
+      }
+    });
+
+},
+
+methods: {
+
+	error_check : function(error_msg){
+
+    if(error_msg["id_exist_error"] == true)
+    {
+        this.acc_id = "Error This ID Is Exist";
+        this.acc_id_error = "error";
+    }
+		
+	},
+
+   previou_page : function(){
+
+    if(this.current_page == 1)
+    {
+        this.current_page = this.page_total;
+    }
+    else
+    {
+        this.current_page--;
+    }
+    this.render_page(this.current_page);
+  },
+
+  next_page : function(){
+
+    if(this.current_page == this.page_total)
+    {
+        this.current_page = 1;
+    }
+    else
+    {
+        this.current_page++;
+    }
+    this.render_page(this.current_page);
+  },
+
+	async render_page(page_num)
+	{
+    this.current_page = page_num;
+		var item_page_render = {'page' : page_num , 'page_rate' : this.item_per_page};
+		var res = await axios.post('./app/action/render_pagnition.php', item_page_render);
+		this.ProList = res.data.account;
+    this.page_total = res.data.total_page;
+
+    console.log("total page : " + this.page_total);
+    this.pagination_data = [];
+    this.create_pagnition();
+    this.start_index = (this.current_page - 1) * this.item_per_page;
+    if(this.ProList.length > 0){
+          this.last_id = this.ProList[this.ProList.length-1].acc_id;
+    }
+
+	},
+
+	validation : function(){
+		var ispass = true;
+		if(this.acc_name == ""){
+			this.acc_name_error = "error"
+			ispass = false
+		}
+		if(this.acc_id == ""){
+			this.acc_id_error = "error"
+			ispass = false
+		}
+		return ispass;
+	},
+
+  create_pagnition : function(){
+    for (var i = 1; i <= this.page_total; i++) {
+      var add = {
+        index_data : i,
+        class_normal : 'page-item',
+        class_error : ''
+      };
+
+      if(this.current_page == i){
+        add.class_error = "active";
+      }
+
+      this.pagination_data.push(add);
+    }
+  },
+
+  new_page : function(){
+    this.page_total++;
+    this.current_page = this.page_total;
+    this.last_id = this.ProList[this.ProList.length-1].acc_id;
+    this.ProList = [];
+    console.log("total page : " + this.page_total);
+    this.pagination_data = [];
+    this.create_pagnition();
+    this.start_index = (this.current_page - 1) * this.item_per_page;
+  },
+
+	async prepare_newpro() {
+
+    if(this.save_state == 0){  // if not open form
+      
+        await this.render_page(this.page_total); 
+   
+         var newdata = {
+          acc_id : 0,
+          acc_name : "",
+          is_edit : true
+        };
+
+        var i = this.ProList.length + (this.item_per_page * (this.page_total -1));
+        this.acc_no = i + 1;
+        this.save_state = 1;
+
+              if(this.ProList.length == this.item_per_page){  // is max row
+                  this.new_page();
+              }
+
+        this.ProList.push(newdata);
+
+        this.try_auto_id();
+        }
+
+	},
+
+  async save(i){
+  	var update_i = i;
+  	if(this.validation()){
+
+ 		var adddata = {
+    'acc_no' : this.ProList[i].acc_no,
+ 		'acc_id' : this.acc_id,
+ 		'acc_name' : this.acc_name,
+    'old_id' : this.ProList[i].acc_id
+ 		};
+
+    console.log(adddata);
+
+ 		if(this.save_state != 2){
+      this.isFetching = true;
+			var res = await axios.post('./app/action/add_account.php', adddata) ;
+			if(res.data["status"] != "failed"){
+				console.log(this.ProList);
+				this.ProList[update_i].is_edit = false;
+ 				this.ProList[update_i].acc_id =  this.acc_id;
+ 				this.ProList[update_i].acc_name =  this.acc_name;	
+
+			}
+			else
+			{
+				this.error_check(res.data);
+			}
+
+ 		}
+ 		else{
+      this.isFetching = true;
+
+			var res = await axios.post('./app/action/update_account.php', adddata) ;
+                    console.log(res.data);
+			if(res.data["status"] != "failed"){
+				this.ProList[update_i].is_edit = false;
+ 				this.ProList[update_i].acc_id =  this.acc_id;
+ 				this.ProList[update_i].acc_name =  this.acc_name;	
+        console.log("update sucess");
+			}
+			else
+			{
+				this.error_check(res.data);
+
+        console.count("update error")
+			}
+ 		}
+
+     this.isFetching = false;
+     this.update_index = -1;
+     this.save_state = 0;
+
+  	}
+
+  },
+  
+  async remove(i)
+  {
+  	var remove_send = {
+  		"acc_id" : this.ProList[i].acc_id
+  	};
+  	console.log(remove_send);
+  	var ress = await axios.post('./app/action/delete_account.php', remove_send) ;
+
+  	if(ress.data["status"] != "failed")
+  	{
+  	this.ProList.splice(i, 1);
+    //this.pagination_data = []
+    //this.create_pagnition();
+ 		 console.log(i)
+  	}else
+  	{
+  		console.log("remove data failed");
+  	}
+  },
+
+  clear_form : function(i)
+  {
+    this.ProList[i].is_edit = false;
+    this.acc_no = 0;
+    this.acc_id = "";
+    this.acc_name = "";
+    this.save_state = 0;
+  },
+
+  try_auto_id : function(){
+ 
+    if(this.setting.auto_id){
+
+      var pro = this.ProList.map((str) => {
+        return str.acc_id;
+      });
+      
+      var max_value = Math.max.apply(Math, pro);
+      console.log(pro);
+      max_value++;
+      this.acc_id = max_value;
+
+          if(this.ProList.length == 1){  // is max row
+                  this.acc_id = this.last_id;
+                  this.acc_id++;
+                  //console.log("pro length : " + this.ProList.length + " rate : " + this.item_per_page);
+          }
+      console.log(max_value);
+    }
+  },
+
+
+  prepare_edit: function (i) 
+  {
+    if(this.save_state == 0){ // if not open form
+      this.update_index = i;
+      this.save_state = 2;
+      this.ProList[i].is_edit = true;
+      var it = (this.item_per_page * (this.current_page -1));
+      this.acc_no = i+it+1;
+      this.acc_id = this.ProList[i].acc_id;
+      this.acc_name = this.ProList[i].acc_name;
+    }
+    else if(this.save_state == 2){
+      this.clear_form(this.update_index);
+      this.prepare_edit(i);
+    }
+  }
+}
+
+})
+
+</script>
+
+</body>
+</html> 
