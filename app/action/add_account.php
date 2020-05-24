@@ -29,6 +29,7 @@ if(mysqli_num_rows($row_rs) > 0){
 	$res["status"] = "failed";
 }
 
+mysqli_close($con);
 
 echo json_encode($res);
 //require 'render_account.php';

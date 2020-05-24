@@ -18,6 +18,8 @@ else{
 $res["status"] = "true";
 }
 
+mysqli_close($con);
+
 echo json_encode($res);
 
 ?>

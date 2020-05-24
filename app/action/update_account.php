@@ -31,6 +31,6 @@ if(mysqli_num_rows($row_rs) > 0){
 	$res["id_exist_error"] = true;
 }
 }
-
+mysqli_close($con);
 echo json_encode($res);
 ?>

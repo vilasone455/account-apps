@@ -45,7 +45,7 @@ $return_data = array();
 $return_data["account"] = $res;
 $return_data["total_page"] = $totalpage;
 $return_data["total_acc"] = $row_count;
-
+mysqli_close($con);
 echo json_encode($return_data);
 
 ?>

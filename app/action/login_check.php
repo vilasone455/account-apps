@@ -15,7 +15,7 @@ if(mysqli_num_rows($rs)==1)
 	 $_SESSION['user_id'] = $row["user_id"];
 	 $_SESSION['user_name'] = $row["user_name"];
 	 $_SESSION['user_role'] = $row["user_role"];
-
+	 mysqli_close($con);
 	 if($row["user_role"] == 0)
 	 {
 		header("location:../../index.php");
